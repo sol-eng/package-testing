@@ -1,0 +1,66 @@
+---
+title: "Validation Strategy for R packages"
+format: 
+  html:
+    css: styles.css
+---
+
+# Introduction
+
+This document serves as a summary and description of the chosen Validation Strategy for R packages. It uses a very simplified approach that nevertheless follows the basic principles of risk-based validation. 
+
+::: {.callout-important}
+## Important
+
+The validation strategy outlined in this document is very basic and may not be appropriate to be used in a real-world scenario unchanged. It nevertheless can serve as a starting point to develop a workflow around for testing R packages. 
+:::
+
+# Validation vs Testing
+
+Very often [Validation](https://en.wikipedia.org/wiki/Validation_(drug_manufacture)) and Testing are used very interchangeably when it comes to software. In a strict sense, there is no such thing as software validation. In a [GxP](https://en.wikipedia.org/wiki/GxP) world, following the principles of [Computerized System Validaion (CSV)](https://en.wikipedia.org/wiki/Computerized_system_validation), business processes can be validated. The needed evidence to support the validation of a business process however is created by running tests against the software used. The prerequisites to run any Validation and Testing at all is the Qualificaion of the underlying IT system, i.e. a fully traceable and repatable setup of the IT system. 
+
+# Risk-based Validation
+
+In an ideal world, any business process is defined in way that does not leave any room for ambiguity or interpretation. As such, with some effort, such a busines process can be validated by running a number of tests that provide evidence that the IT system built can meet the requirements of the business process. Realistically however the parameter space for testing tends to be very large and the testing effort becomes unmanageable very quickly. In order to still provide meaningful testing that supports the validation of the business process, risk-based validation is used. This includes a two-step process whereby the [risk is being assessed](https://en.wikipedia.org/wiki/Risk_assessment) and the output then used to inform a testing strategy. 
+
+Such a risk-based approach will also be used to validate the R packages. 
+
+# Step-by-step process
+
+1. The R version needs to be specified. This version of R including base and recommended packages is installed on the system and its installation documented via usual qualification documents (IQ/OQ). 
+2. The contributed R packages needed to support one or multiple business process(es) need to be identified. The packages need to be compiled in a list with unique identifiers which typically are package name and version or package name (for packages stored in git/github/gitlab, package name and either release tag or commit id are needed). Ideally this package list should contain all Packages including all dependencies ("Imports", "LinkingTo" as a minimum). If the package list is not complete as far as dependencies are concerned, a time-based snapshot needs to be specified as well. Such a snapshot date is the lowest commonon denominator for all chosen R packages, i.e. the recent enough snapshot that contains all selected R packages and versions. Packages are chosen solely on the basis of whether they are needed to support the business process(es). No direct assessment of the quality of the package is made at this point. 
+3. Both the R version and the selected list of R packages is documented in the Validation Plan. 
+4. A new local R repository is created on package manager that will eventually contain all the tested packages. 
+5. The selected R packages are deployed into the site library of the installed R version. In order to ensure full reproducibility of results and to also consume the same packages on Connect, we build all packages from source. The chosen [technical tool](https://pak.r-lib.org), `{pak}`, is very helpful in this regard. It will build and install packages in parallel for reduced time-to-result, will auto-resolve and install any system dependencies and produce and save binary packages in its cache. We take this binary package as well as the source and upload it to package manager into the newly created repository as an "internal" distribution[^1]. 
+6. Each package is assessed for its risk using the `{riskmetric}` [package](https://pharmar.github.io/riskmetric/). This package will provide a risk score for each package ranging from 0 (no risk) to 1 (high risk). Package risk scores will scatter across the full interval. 
+7. In principle the risk scores can now be used to inform the detailed testing strategy. Multiple options are possible: The risk scores can be categorized into various discrete risk levels (e.g. low/medium/high) and this risk level then can be used to inform the testing strategy (e.g. more testing of high risk packages than for low risk ones). In order to keep things very simple, our process only documents the risk score and level, but the testring strategiy is the same for each package. We only run `R CMD check` for each package. For `R CMD check` to work properly, we also temporarily install all direct dependencies of our packages with dependency types "Imports", "LinkingTo", "Suggests" and "Enhances" into a separate folder. 
+8. Finally, the risk score and risk level is uploaded to package manager as custom metadata. A quarto report for each package is generated and uploaded to posit connect. The link to this report is added as custom metadata to package manager as well. Each report includes the package metadata from the package's `DESCRIPTION` file plus 
+
+::: {.content-visible when-format="html"}
+::: {.indented-table}
+| Qualification Type | Description |
+|:-------------------|:------------|
+| Installation Qualification (IQ) | Build and install logs |
+| Operational Qualification (OQ) | Output (if any) when loading the package |
+| Performance Qualification (PQ) | `R CMD check` output |
+:::
+:::
+
+::: {.content-visible when-format="pdf"}
+    | Qualification Type | Description |
+    |:-------------------|:------------|
+    | Installation Qualification (IQ) | Build and install logs |
+    | Operational Qualification (OQ) | Output (if any) when loading the package |
+    | Performance Qualification (PQ) | `R CMD check` output |
+:::
+
+9. A validation report is generated that contains all the produced artifacts (e.q. quarto reports), uploaded to Posit connect and the respective URL is added as a custom metadata to package manager on a repository level. 
+10. The Validation report needs to be reviewed and signed off by the stakeholders in order to complete the validation effort. Any other relevant documentation need to be updated before closing the validation process (e.g. traceability matrix, configuration masterfile, ...) 
+
+[^1]: This process ensures that the R packages are built specifically for the respective underlying operating system and will be immutable. Package manager provides package binaries as well but they are not guaranteed to be immutable long term as the package manager team reserves the right to rebuild the packages for any bug fixes (e.g. if a "LinkingTo" dependency changes it's API so that other packages no longer can use this dependency as it was compiled before). 
+
+# Additional notes on the chosen approach
+
+As mentioned before, there is no such thing as software validation. Only workflows and business processes can be validated. Providing documented evidence that you system is meeting the requirements by the business process is the only thing that is needed. As such, running scripts that resemble the business process(es) very accurately is all that is needed. So, if an IT system had an user requirement to run a pharmacometrics analyis, then an appropriate test to validate this workflow would be to provide evidence that a typical analysis can be run using `{nlmixr2}` for example. This test alone then can be regarded as sufficient to validate that a pharamacometics analysis can be run successfully and provided the correct result. 
+
+In the approach chosen here, we simply run `R CMD check` on each and every package that is installed on the system in the hope that the tests included in the package itself are good enough to uncover any problem. In parallel these tests also to a large extent are not directly traceable back to user requirements, they are merely a global insurance policy in the absence of clearly defined user requirements and business processes. 

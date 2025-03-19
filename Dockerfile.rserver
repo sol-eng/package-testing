@@ -1,0 +1,37 @@
+FROM rockylinux:9 
+
+ARG R_VERSION=4.3.2
+RUN dnf install -y epel-release && crb enable 
+
+RUN dnf install -y xz perl wget yum-utils 
+
+RUN dnf install -y procps net-tools iputils
+
+#ENV TINYTEX_INSTALLER=TinyTeX
+#ENV TINYTEX_VERSION=2025.01
+
+#RUN curl -L "https://yihui.org/tinytex/install-bin-unix.sh" | sh
+
+RUN yum install -y texinfo-tex texlive-collection-latexrecommended
+
+RUN crb enable && dnf install -y https://cdn.rstudio.com/r/rhel-9/pkgs/R-${R_VERSION}-1-1.x86_64.rpm
+
+RUN ln -s /opt/R/${R_VERSION}/bin/{R,Rscript} /usr/local/bin
+
+COPY scripts/r-start.sh /
+
+RUN mkdir -p /code
+
+COPY rserver/renv.lock /code 
+
+RUN cd /code && \
+    echo -e 'options(renv.config.pak.enabled=TRUE)\noptions(repos=c(CRAN="https://packagemanager.posit.co/cran/__linux__/rhel9/2025-03-10"))\nSys.setenv("PKG_SYSREQS_PLATFORM" = "rockylinux-9")' > .Rprofile && \
+    R -q -e 'install.packages(c("renv"))' && \
+    R -q -e 'renv::activate()' && \
+    R -q -e 'renv::restore()'
+
+RUN yum -y install strace
+
+COPY rserver/testapi.R /code 
+
+ENTRYPOINT ["/r-start.sh"]

@@ -1,0 +1,55 @@
+---
+title: "Testing Report for `r params$name` `r params$version`"
+author: "Michael Mayer"
+format: html
+editor: visual
+params:
+    name: "xyz"
+    version: "1.0"
+    description: ""
+    iq: ""
+    oq: ""
+    pq: ""
+    pak_data: ""
+---
+
+```{r, echo=FALSE,results=FALSE, message=FALSE, warnings=FALSE}
+library(dplyr)
+library(gt)
+```
+
+# Package description
+
+```{r, echo=FALSE}
+# Convert the package description to a data frame and transpose it
+description_df <- as.data.frame(params$description)
+transposed_df <- as.data.frame(t(description_df))
+
+# Set the row names as a new column for better display
+transposed_df <- tibble::rownames_to_column(transposed_df, var = "Field")
+
+# Render the transposed description as a table using gt
+#gt(transposed_df) 
+
+gt(as.data.frame(params$description))
+```
+
+# `IQ result`
+
+```{r, echo=FALSE}
+cat(eval(parse(text = params$iq$stdout)), sep="\n")
+```
+
+# `OQ result`
+
+The output of `library(params$name)` produced the following result:
+
+```{r, echo=FALSE}
+cat(params$oq$stdout, sep="\n")
+```
+
+# `PQ result`
+
+```{r, echo=FALSE}
+cat(params$pq$stdout, sep="\n")
+```

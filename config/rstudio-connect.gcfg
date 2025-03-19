@@ -1,0 +1,25 @@
+; Posit Connect configuration file
+
+[Server]
+Address = "http://localhost:3939"
+# Katie's hack 
+EmailProvider = "print"
+SenderEmail = michael.mayer@posit.co
+
+[HTTP]
+; Posit Connect will listen on this network address for HTTP connections.
+Listen = ":3939"
+
+[Bootstrap]
+Enabled = true
+SecretKeyFile = /var/lib/rstudio-connect/secret.key
+
+[Authentication]
+Provider = "password"
+
+[Logging]
+ServiceLog = "STDOUT"
+
+
+[R]
+PositPackageManagerURLRewriting = force-binary

@@ -1,0 +1,105 @@
+---
+title: "Testing Report for `r params$name` `r params$version`"
+author: "Michael Mayer"
+format: html
+editor: visual
+params:
+    name: "xyz"
+    version: "1.0"
+    rcmdcheck: ""
+    description: ""
+    deps_testing: ""
+    pak_data: ""
+---
+
+```{r, echo=FALSE,results=FALSE, message=FALSE, warnings=FALSE}
+library(dplyr)
+library(gt)
+```
+
+# Package description
+
+```{r, echo=FALSE}
+# Convert the package description to a data frame and transpose it
+description_df <- as.data.frame(params$description)
+transposed_df <- as.data.frame(t(description_df))
+
+# Set the row names as a new column for better display
+transposed_df <- tibble::rownames_to_column(transposed_df, var = "Field")
+
+# Render the transposed description as a table using gt
+gt(transposed_df) 
+```
+
+# `R CMD check` output
+
+```{r, echo=FALSE}
+cat(params$rcmdcheck, sep="\n")
+```
+
+# Complete list of tested packages including dependencies
+
+Together with the package `r params$name` `r params$version` the following number of packages were installed. Some of these have triggered some operating system dependency installations. These are listed in the table below. 
+
+```{r, echo=FALSE}
+
+# Split each string into name and version
+split_deps <- sapply(params$deps_testing, function(x) strsplit(x, "@")[[1]])
+
+# Convert the result into a data frame
+deps_df <- data.frame(
+  name = split_deps[1, ],
+  version = split_deps[2, ],
+  stringsAsFactors = FALSE
+)
+
+my_pak_data<-params$pak_data
+
+conv_to_string <- function(input="") {
+    ret_string=""
+    if (nzchar(input$sysreqs_pre_install)) ret_string=input$sysreqs_pre_install
+    if (nzchar(input$sysreqs_install)) ret_string=paste(ret_string,input$sysreqs_install, sep=" && ")
+    if (nzchar(input$sysreqs_post_install)) ret_string=paste(ret_string,input$sysreqs_post_install, sep=" && ")
+    return(ret_string)
+}
+
+# add any system dependencies that were installed (main install)
+deps_df$sysreqs_install <- sapply(1:nrow(deps_df), function(i) {
+    my_pak_data$sysreqs_install[
+        my_pak_data$package == deps_df$name[i] & 
+        my_pak_data$version == deps_df$version[i]
+    ]
+})
+
+# add any system dependencies that were installed (preinstall)
+deps_df$sysreqs_pre_install <- sapply(1:nrow(deps_df), function(i) {
+    my_pak_data$sysreqs_pre_install[
+        my_pak_data$package == deps_df$name[i] & 
+        my_pak_data$version == deps_df$version[i]
+    ]
+})
+
+# add any system dependencies that were installed (postinstall)
+deps_df$sysreqs_post_install <- sapply(1:nrow(deps_df), function(i) {
+    my_pak_data$sysreqs_post_install[
+        my_pak_data$package == deps_df$name[i] & 
+        my_pak_data$version == deps_df$version[i]
+    ]
+})
+
+# Apply the conv_to_string function to each row of deps_df
+deps_df$combined_sysreqs <- apply(deps_df, 1, function(row) {
+  # Create a list with the necessary components for the function
+  input <- list(
+    sysreqs_pre_install = row["sysreqs_pre_install"],
+    sysreqs_install = row["sysreqs_install"],
+    sysreqs_post_install = row["sysreqs_post_install"]
+  )
+  conv_to_string(input)
+})
+
+gt(deps_df %>% select(name, version, combined_sysreqs))
+
+```
+
+

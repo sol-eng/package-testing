@@ -1,0 +1,94 @@
+---
+title: "Validation Plan for R packages"
+format: html
+params:
+    r_version: "4.4.2"
+    main_packages: ""
+    extra_packages: ""
+    snapshot_date: "" 
+    validation_strategy_url: ""
+---
+
+# Introduction
+
+This document serves as a Validation Plan for R packages that are to be installed together with R version `r params$r_version`. It is built on the foundations of the [Validation Strategy](`r params$validation_strategy_url`). For any missing package, a time-based snapshot with date `r params$snapshot_date` is used. 
+
+::: {.callout-important}
+## Important
+
+The validation plan outlined in this document is very basic and may not be appropriate to be used in a real-world scenario unchanged. It nevertheless can serve as a starting point to develop a workflow around for testing R packages. In many cases the validation plan is combined with a general Impact Analysis and Quality Strategy for the changes made to your system. 
+:::
+
+# Package List
+
+
+```{r}
+#| label: main-package-table
+#| echo: false
+
+library(gt)
+
+main_packages<-as.data.frame(params$main_packages)
+
+main_packages %>%
+  gt() %>%
+  tab_header(
+    title = "Packages selected for Testing"
+  ) %>%
+  cols_align(
+    align = "left",
+    columns = c(name, version, URN)
+  ) %>%
+  tab_style(
+    style = cell_borders(
+      sides = "all",
+      color = "gray",
+      style = "solid",
+      weight = px(1)
+    ),
+    locations = cells_body()
+  ) %>%
+  opt_row_striping() %>%
+  tab_options(
+    table.width = pct(100),
+    table.font.size = px(12)
+  )
+```
+
+
+
+In order to make `R CMD check` run successfully, the following additional dependencies have been identified that will be installed temporarily. 
+
+```{r}
+#| label: extra-package-table
+#| echo: false
+
+library(gt)
+
+extra_packages<-as.data.frame(params$extra_packages)
+
+
+extra_packages %>%
+  gt() %>%
+  tab_header(
+    title = "Extra Packages needed for `R CMD check`"
+  ) %>%
+  cols_align(
+    align = "left",
+    columns = c(name, version, URN)
+  ) %>%
+  tab_style(
+    style = cell_borders(
+      sides = "all",
+      color = "gray",
+      style = "solid",
+      weight = px(1)
+    ),
+    locations = cells_body()
+  ) %>%
+  opt_row_striping() %>%
+  tab_options(
+    table.width = pct(100),
+    table.font.size = px(12)
+  )
+```

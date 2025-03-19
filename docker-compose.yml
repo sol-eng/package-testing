@@ -1,0 +1,80 @@
+services:
+  packagemanager:
+    image: rstudio-pm:${PPM_VERSION:-2024.11.0-7}-R-${R_VERSION:-4.4.2}-py-${PYTHON_VERSION:-3.9.16}
+    build:
+      context: .
+      dockerfile: Dockerfile.ppm
+      args:
+        PPM_VERSION: ${PPM_VERSION:-2024.11.0-7}
+        R_VERSION: ${R_VERSION:-4.4.2}
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.9.16}
+    command: ["/ppm-start.sh"]
+    hostname: packagemanager
+    privileged: false
+    volumes:
+      - rstudio-pm:/var/lib/rstudio-pm
+      - token-dir:/var/lib/token
+    ports:
+      - "4242:4242"
+    environment:
+      RSPM_LICENSE: ${RSPM_LICENSE}
+
+
+  connect:
+    image: posit-connect:${RSC_VERSION:-2024.12.0}-R-${R_VERSION:-4.4.2}-py-${PYTHON_VERSION:-3.9.16}
+    build:
+      context: .
+      dockerfile: Dockerfile.psc
+      args:
+        PSC_VERSION: ${PSC_VERSION:-2024.12.0}
+        R_VERSION: ${R_VERSION:-4.4.2}
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.9.16}
+    command: ["/psc-start.sh"]
+    hostname: connect
+    privileged: true
+    volumes:
+      - rstudio-connect:/var/lib/rstudio-connect
+      - token-dir:/var/lib/token
+    ports:
+      - "3939:3939"
+    environment:
+      RSC_LICENSE: ${RSC_LICENSE}
+
+  api:
+    image: api:R-${R_VERSION:-4.4.2}
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+      args:
+        R_VERSION: ${R_VERSION:-4.4.2}
+    depends_on:
+      - packagemanager
+      - connect
+    command: ["/api-start.sh"]
+    hostname: api
+    privileged: false
+    volumes:
+      - token-dir:/var/lib/token
+    ports:
+      - "8000:8000"
+
+  rserver:
+    image: rserver:R-${R_VERSION:-4.4.2}
+    build:
+      context: .
+      dockerfile: Dockerfile.rserver
+      args:
+        R_VERSION: ${R_VERSION:-4.4.2}
+    depends_on:
+      - api
+    command: ["/r-start.sh"]
+    hostname: rserver
+    privileged: false
+    volumes:
+      - ${PWD}:/root/code 
+      - token-dir:/var/lib/token
+
+volumes:
+  rstudio-pm:
+  rstudio-connect:
+  token-dir:
