@@ -55,19 +55,14 @@ render_content <- function(url = "http://api:8000/render_content", data = list()
 
 
 package_list <- function(input_list = c("nlmixr2", "mschubert/clustermq"),
-         ppm_url = "http://packagemanager:4242",
-         repository = "cran",
-         snapshot = "2025-01-08",
+         repos = "",
          deps = c("Depends", "Imports", "LinkingTo", "Suggests", "Enhances"),
          libdir = "",
          debug = FALSE) {
-  # Set the repos option
-  my_repo <- paste(ppm_url, repository, snapshot, sep = "/")
 
   if (debug) {
-    print(paste("Debug: using dependencies", deps))
     print("Debug: repo options")
-    print(my_repo)
+    print(repos)
     print("Debug: input_list")
     print(input_list)
   }
@@ -75,7 +70,6 @@ package_list <- function(input_list = c("nlmixr2", "mschubert/clustermq"),
   # get dependencies
   pkg_deps<-callr::r_vanilla(
     function(input_list,deps) {
-      #options(repos="http://packagemanager:4242/cran/2025-01-08")
       print("XXXXX")
       print(.libPaths())
       pak::pkg_deps(c(input_list, "*=?ignore-unavailable"), dependencies = deps)
@@ -85,7 +79,7 @@ package_list <- function(input_list = c("nlmixr2", "mschubert/clustermq"),
       deps = deps
     ),
     libpath = libdir,
-    repos = my_repo,
+    repos = options()$repos,
     env = c("PKG_SYSREQS_PLATFORM" = "rockylinux-9"),
     show = TRUE
   )
@@ -218,9 +212,7 @@ if (debug) {
 
 main_package_list <- package_list(
   input_list = test_list,
-  ppm_url = ppm_url,
-  repo = "cran",
-  snapshot = snapshot_date,
+  repos = options()$repos,
   deps = c("Imports", "LinkingTo"),
   libdir = pak_install_dir,
   debug = TRUE
@@ -257,7 +249,7 @@ pak_main_data <-
       dest_dir = main_install_dir
     ),
     libpath = pak_install_dir,
-    repos = default_url,
+    repos = options()$repos,
     env = c("PKG_SYSREQS_PLATFORM" = "rockylinux-9"),
     show = TRUE
   )
@@ -291,9 +283,7 @@ if (debug) {
 
 extra_package_list <- package_list(
   input_list = main_package_list$URN,
-  ppm_url = ppm_url,
-  repository = "cran",
-  snapshot = snapshot_date,
+  repos = options()$repos,
   deps =  c("Depends", "Imports", "LinkingTo", "Suggests", "Enhances"),
   libdir = pak_install_dir,
   debug = TRUE
@@ -348,7 +338,7 @@ extra_pak_data <-
       dest_dir = extra_install_dir
     ),
     libpath = pak_install_dir,
-    repos = default_url,
+    repos = options()$repos,
     env = c("PKG_SYSREQS_PLATFORM" = "rockylinux-9"),
     show = TRUE
   )
